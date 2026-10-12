@@ -47,7 +47,7 @@ html = html.replace(script[0], '<script>' + bootstrap + '</script>')
 html = html.replace(stylesheet[0], '<style>' + css + '</style>')
 html = html.replace('</body>', '<script type="module">' +
                     js.replace('</script', '<\\/script') + '</script></body>')
-(target / 'index.html').write_text(html, encoding='utf-8')
+(target / 'index.html').write_text(html, encoding='utf-8', newline='\n')
 with ZipFile(target / 'teacher-demo-static.zip', 'w', ZIP_DEFLATED) as archive:
     archive.write(target / 'index.html', 'index.html')
 record = {'file': str(target / 'index.html'), 'bytes': len(html.encode()),
