@@ -1,0 +1,36 @@
+<script setup lang="ts">
+import {ref,computed,onMounted,watch} from 'vue'
+import {BookOpen,Download,Upload,ArrowRight,Menu,Search,History,LogOut,ChevronRight,CircleHelp,LoaderCircle,AlertCircle,CheckCircle2,Home,ClipboardCheck,Phone,GraduationCap,CalendarDays} from 'lucide-vue-next'
+import {api,ApiError,resetDemo} from './api'
+import {primaryModules,supportedPages} from './modules'
+import WorkflowPage from './WorkflowPage.vue'
+import GeneratorPage from './GeneratorPage.vue'
+import DataSearch from './DataSearch.vue'
+type Item=Record<string,any>
+const initial=window.location.hash.slice(1),active=ref(supportedPages.has(initial)?initial:'dashboard'),user=ref<Item|null>(null),meta=ref<Item|null>(null),loading=ref(true),busy=ref(false),error=ref(''),sidebarOpen=ref(false),logs=ref<Item[]>([])
+const loginForm=ref({username:'admin',password:'Demo@2026'})
+const icons:Item={'weekly-checkin':BookOpen,'monthly-checkin':CalendarDays,classroom:ClipboardCheck,habit:Upload,monthly:Upload,scores:GraduationCap,communication:Phone}
+const entry=computed(()=>primaryModules.find(m=>m.id===active.value)),title=computed(()=>entry.value?.name||({dashboard:'教学数据中心',students:'数据搜索',audit:'操作记录',settings:'系统说明'} as Item)[active.value]||'首页')
+function navigate(id:string){active.value=supportedPages.has(id)?id:'dashboard';window.location.hash=active.value;sidebarOpen.value=false;error.value=''}
+async function loadMeta(){meta.value=await api('teaching/metadata/')}
+async function signIn(){busy.value=true;error.value='';try{const data=await api('login/',{method:'POST',body:JSON.stringify(loginForm.value)});user.value=data.user;await loadMeta();navigate('dashboard')}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
+async function signOut(){try{await api('logout/',{method:'POST'});user.value=null;meta.value=null;await api('csrf/')}catch(e){error.value=(e as Error).message}}
+async function loadLogs(){try{logs.value=(await api('audit/')).items}catch(e){error.value=(e as Error).message}}
+watch(active,()=>{if(active.value==='audit')loadLogs()})
+onMounted(async()=>{window.addEventListener('hashchange',()=>navigate(window.location.hash.slice(1)));try{await api('csrf/');user.value=await api('me/');await loadMeta();if(active.value==='audit')await loadLogs()}catch(e){if(!(e instanceof ApiError&&[401,403].includes(e.status)))error.value=(e as Error).message}finally{loading.value=false}})
+</script>
+
+<template>
+  <div v-if="loading" class="boot-screen"><BookOpen :size="26"/><LoaderCircle class="spin" :size="22"/>正在加载教学数据…</div>
+  <main v-else-if="!user" class="boot-screen"><h1>教师操作演示</h1><button class="btn primary" @click="signIn">进入教师演示</button></main>
+  <div v-else class="app-shell"><div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen=false"></div><aside class="sidebar" :class="{open:sidebarOpen}"><button class="brand brand-button" @click="navigate('dashboard')"><div class="brand-mark"><BookOpen :size="23"/></div><div><strong>易成教学数据</strong></div></button><nav aria-label="主导航"><div class="nav-section"><div class="nav-label">工作空间</div><button class="nav-item" :class="{active:active==='dashboard'}" @click="navigate('dashboard')"><Home :size="18"/>首页</button></div><div class="nav-section"><div class="nav-label">数据模块</div><button v-for="m in primaryModules" :key="m.id" class="nav-item" :class="{active:active===m.id}" @click="navigate(m.id)"><component :is="icons[m.id]" :size="18"/><span>{{m.name}}</span></button></div></nav><div class="sidebar-bottom"><div class="utility-links"><button class="text-button" @click="navigate('audit')"><History :size="15"/>操作记录</button></div><button class="nav-item" :class="{active:active==='settings'}" @click="navigate('settings')"><CircleHelp :size="18"/>系统说明</button><div class="profile"><div class="avatar">{{user.name.slice(0,1).toUpperCase()}}</div><div><strong>{{user.name}}</strong><span>{{user.role_label}}</span></div><button class="icon-button" aria-label="退出登录" @click="signOut"><LogOut :size="17"/></button></div></div></aside>
+    <div class="main-shell"><header class="topbar"><div class="breadcrumb"><button class="icon-button mobile-menu" aria-label="打开导航" @click="sidebarOpen=true"><Menu :size="22"/></button><span class="breadcrumb-root">教学数据工作空间</span><ChevronRight :size="14"/><strong>{{title}}</strong></div><div class="topbar-right"><span class="pill blue">操作演示 · 虚构数据</span><button class="text-button" @click="resetDemo">重置演示</button><button class="text-button" @click="navigate('students')"><Search :size="16"/>搜索</button><div class="avatar small">{{user.name.slice(0,1).toUpperCase()}}</div></div></header><main class="content"><div class="page-heading"><div><h1>{{title}}</h1></div></div><div v-if="error" class="error-banner"><AlertCircle :size="18"/>{{error}}</div><div v-if="!meta" class="panel workflow-panel"><p>资料配置加载失败。</p><button class="btn" @click="loadMeta">重试</button></div>
+      <section v-if="active==='dashboard'" class="module-grid" aria-label="七个数据模块"><button v-for="(m,index) in primaryModules" :key="m.id" class="module-card" :class="{'module-card-wide':m.id==='classroom'}" :aria-label="m.name" @click="navigate(m.id)"><div class="module-card-top"><span class="module-card-icon" :class="index<2?'download-tone':'upload-tone'"><component :is="icons[m.id]" :size="25"/></span><span class="module-card-number">{{String(index+1).padStart(2,'0')}}</span></div><h2>{{m.name}}</h2><span class="module-card-action">{{m.action}}<ArrowRight :size="16"/></span></button></section>
+      <GeneratorPage v-else-if="meta&&['weekly-checkin','monthly-checkin'].includes(active)" :key="active" :kind="active==='weekly-checkin'?'habit':'monthly'" :user="user" :meta="meta" @navigate="navigate"/>
+      <WorkflowPage v-else-if="meta&&meta.kinds[active]" :key="active" :kind="active" :user="user" :meta="meta"/>
+      <DataSearch v-else-if="meta&&active==='students'" :meta="meta"/>
+      <section v-else-if="active==='audit'" class="panel workflow-panel"><div class="workflow-toolbar"><h2>最近 100 次操作</h2><span class="toolbar-spacer"></span><button class="btn" @click="loadLogs">刷新</button></div><div class="table-scroll"><table><thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>说明</th></tr></thead><tbody><tr v-for="l in logs" :key="l.id"><td>{{new Date(l.date).toLocaleString('zh-CN')}}</td><td>{{l.actor}}</td><td>{{({preview:'校验',import:'提交',replace:'替换',delete:'撤回',download:'下载',export:'导出',source:'取源数据',generate:'生成',create:'新增',update:'修改'} as Item)[l.action]||l.action}}</td><td>{{l.summary}}</td></tr></tbody></table></div></section>
+      <section v-else-if="active==='settings'" class="panel workflow-panel help-page"><h2>老师试用路线</h2><ol><li>打开任一上传入口，下载“已填示例”；也可以下载模板自己填写。</li><li>拖入示例文件，核对预览后点击“确认入库”。</li><li>查看数据明细、分析汇总，下载结果文件。</li><li>重新上传同一文件，体验替换；在提交情况里体验撤回。</li><li>周／月习惯打卡可取得虚构数据、生成 Excel，再到相应入口上传。</li></ol><h2>这个版本演示什么</h2><p>七个首页入口和基本操作沿用当前项目。数据、原件和操作记录仅存于您自己的浏览器，其他人看不到您本次操作；可点击“重置演示”重新开始。</p><p>本页自动使用演示教师身份；登录权限、外部打卡平台接口、正式数据库和多人协作需在正式系统中单独验收。打卡生成限于演示模板的两个班级；统计区间固定用于示例。</p><h2>请反馈这四件事</h2><ol><li>是否能马上找到要用的入口？模块名字是否符合原本叫法？</li><li>下载模板、选择期次、上传和确认步骤是否顺手？</li><li>已交／未交、替换和撤回的意思是否清楚？</li><li>明细、分析和下载的 Excel 是否满足日常工作？</li></ol><p>请把不习惯的页面截图与期望操作发给项目负责人。演示阶段请使用虚构示例文件。</p></section>
+    </main></div>
+  </div>
+</template>
