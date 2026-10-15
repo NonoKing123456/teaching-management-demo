@@ -1,19 +1,15 @@
-name: Publish teacher demo
-
+name: Publish teacher service entry
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: false
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -28,17 +24,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Embed scripts, styles and fictional Excel examples
-        run: python3 tools/package_teacher_demo.py --dist dist --output site
-      - name: Keep the published artifact minimal
-        run: |
-          mkdir published
-          cp site/index.html published/index.html
-          touch published/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: published
-      - name: Deploy
-        id: deployment
+          path: dist
+      - id: deployment
         uses: actions/deploy-pages@v4
