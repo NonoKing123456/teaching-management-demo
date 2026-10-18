@@ -33,3 +33,28 @@ table,.mini-table{font-size:16px!important}th,.mini-table th{font-size:15px!impo
 .help-page p,.help-page ol{font-size:16px;color:#344258}.login-form>label{font-size:16px;color:#344258}.demo-login>strong{font-size:16px;color:#344258}.demo-login>p,.demo-login button,.demo-login>small{font-size:14px;color:#526075}.muted{color:#526075!important;font-size:14px}
 @media(max-width:760px){:root{--sidebar:252px}h1{font-size:25px}.module-card h2{font-size:20px}.workflow-tabs{gap:22px}.workflow-tabs button{font-size:16px}.workflow-toolbar .search-field{width:100%}.workflow-toolbar .search-field input{width:100%}.page-heading{margin-bottom:18px}.module-card{min-height:178px}}
 @media(max-width:600px){.workflow-toolbar label input,.workflow-toolbar label select{width:100%}.workflow-steps{gap:12px;display:grid;grid-template-columns:1fr 1fr;font-size:15px}.workflow-toolbar .btn{white-space:normal}.workflow-footer .pagination{gap:8px}.submitted-row>span{min-width:100px}}
+
+/* Persistent validation beside the input, with accessible text and focus. */
+input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:#d9a4ab!important;background:#fff;box-shadow:none}
+input[aria-invalid="true"]:focus,select[aria-invalid="true"]:focus,textarea[aria-invalid="true"]:focus{border-color:#89aef9!important;box-shadow:0 0 0 3px #2563eb12}
+.field-error{display:block;color:#9e4f5a;font-size:15px;line-height:1.6;font-weight:400;white-space:normal;max-width:100%;overflow-wrap:anywhere}
+.required-mark{color:#718096}.field:has(>.required-mark){display:grid;grid-template-columns:auto 1fr;align-content:start;column-gap:5px}.field:has(>.required-mark)>input,.field:has(>.required-mark)>.field-error{grid-column:1/-1}
+.validation-summary{display:flex;gap:8px;align-items:center;padding:0;border:0;background:none;color:#9e4f5a;font-size:16px;line-height:1.6;white-space:normal}
+.validation-footer{flex-wrap:wrap}.validation-footer>.validation-summary{flex-basis:100%;margin:0}.validation-footer>.error-inline{flex-basis:100%}.validation-footer .btn{flex-shrink:0}
+.validation-message{margin:12px 0 0}.field-error:empty{display:none}
+
+.upload-zone>.field-error{color:#9e4f5a;font-size:15px}
+.login-feedback{min-height:24px;margin-top:12px;color:#344258;font-size:15px;line-height:1.6}
+.login-feedback-error{color:#b32638}.login-form .login-button{margin-top:12px}
+
+/* Field errors extend below their controls without shifting neighbouring fields. */
+.workflow-toolbar.form-fields{align-items:flex-start}
+.blocked-classes{margin:12px 0 18px;padding:0 14px;border:1px solid #e2e8f1;border-radius:8px;background:#fafbfe}
+.blocked-classes>p{padding:14px 0;color:#526075}
+.blocked-class-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #e2e8f1}
+.blocked-class-row:last-child{border-bottom:0}.blocked-class-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.blocked-class-row small{display:block;color:#526075;margin-top:4px}
+
+.student-missing-mark{display:inline-block;margin-left:8px;padding:2px 6px;border-radius:4px;background:#fff3d6;color:#815b13;font-size:13px;vertical-align:middle}
+
+.legacy-reading{display:block;margin-top:6px;color:#526075;font-size:13px}

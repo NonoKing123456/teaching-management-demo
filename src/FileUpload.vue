@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, useId } from 'vue'
 import { Upload, LoaderCircle } from 'lucide-vue-next'
+import FieldError from './FieldError.vue'
 
 const props = withDefaults(defineProps<{
   busy?: boolean
@@ -18,23 +19,27 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ select: [file: File], invalid: [message: string] }>()
 const input = ref<HTMLInputElement | null>(null)
 const dragDepth = ref(0)
+const localError = ref(''), errorId = useId() + '-upload-error'
+function invalid(message: string) { localError.value = message; emit('invalid', message) }
 const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types || []).includes('Files')
 
 function select(files: FileList | null) {
   if (props.busy || props.disabled || !files?.length) return
   if (files.length !== 1) {
-    emit('invalid', '请一次上传一份 Excel，多班级放在同一文件的不同工作表。')
+    invalid('请一次上传一份 Excel，多班级放在同一文件的不同工作表。')
     return
   }
   const file = files[0]!
   if (!/\.xlsx$/i.test(file.name)) {
-    emit('invalid', '仅支持 .xlsx 文件，请选择 Excel 工作簿。')
+    invalid('仅支持 .xlsx 文件，请选择 Excel 工作簿。')
     return
   }
   if (file.size > 10 * 1024 * 1024) {
-    emit('invalid', '文件超过 10 MB，请缩小文件后重新上传。')
+    invalid('文件超过 10 MB，请缩小文件后重新上传。')
     return
   }
+  if (!file.size) { invalid('文件为空，请选择有内容的 Excel 工作簿。'); return }
+  localError.value = ''
   emit('select', file)
 }
 
@@ -64,8 +69,9 @@ watch(() => props.busy || props.disabled, () => { dragDepth.value = 0 })
 </script>
 
 <template>
-  <div class="upload-zone" :class="{'is-dragging':dragDepth>0,'is-disabled':disabled||busy}"
+  <div class="upload-zone" :class="{'is-dragging':dragDepth>0,'is-disabled':disabled||busy,'upload-invalid':!!localError}"
     role="group" :aria-label="title" :aria-busy="busy" :aria-disabled="disabled||busy"
+    :aria-describedby="localError ? errorId : undefined"
     @dragenter.prevent.stop="dragEnter" @dragover.prevent.stop="dragOver"
     @dragleave.prevent.stop="dragDepth=Math.max(0,dragDepth-1)" @drop.prevent.stop="drop">
     <LoaderCircle v-if="busy" class="spin" :size="30"/><Upload v-else :size="30"/>
@@ -75,5 +81,8 @@ watch(() => props.busy || props.disabled, () => { dragDepth.value = 0 })
     <button type="button" class="btn primary" :disabled="busy||disabled" @click="input?.click()">
       <LoaderCircle v-if="busy" class="spin" :size="16"/>{{buttonText}}
     </button>
+    <FieldError :id="errorId" :message="localError"/>
   </div>
 </template>
+
+<style scoped>.upload-invalid{border-color:#c83445;background:#fff7f8}.upload-zone>.field-error{margin-top:10px;text-align:left}</style>
