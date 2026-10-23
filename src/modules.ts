@@ -10,7 +10,7 @@ export const moduleCatalog = [
 ] as const
 
 export const primaryModules = moduleCatalog.filter(item => item.id !== 'monthly-checkin')
-export const supportedPages = new Set<string>(['dashboard', ...moduleCatalog.map(item => item.id), 'students', 'audit', 'settings', 'teachers'])
+export const supportedPages = new Set<string>(['dashboard', ...moduleCatalog.map(item => item.id), 'students', 'audit', 'settings', 'teachers', 'roster'])
 export function recordKind(page: string): string {
   return page === 'weekly-checkin' ? 'habit' : page === 'monthly-checkin' ? 'monthly' : page
 }

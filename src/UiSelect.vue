@@ -4,8 +4,8 @@ import { Check, ChevronDown } from 'lucide-vue-next'
 
 defineOptions({ inheritAttrs: false })
 type Value = string | number
-type Option = { value: Value; label: string; disabled?: boolean }
-const props = defineProps<{ modelValue: Value; options: Option[]; disabled?: boolean; required?: boolean; name?: string }>()
+type Option = { value: Value; label: string; disabled?: boolean; state?:string }
+const props = defineProps<{ modelValue: Value; options: Option[]; disabled?: boolean; required?: boolean; name?: string; wide?:boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: Value]; change: [value: Value] }>()
 const attrs = useAttrs(), id = useId(), listId = `select-list-${id}`
 const trigger = ref<HTMLButtonElement>(), panel = ref<HTMLUListElement>()
@@ -32,7 +32,9 @@ function position(element = panel.value) {
   const rightEdge = leftEdge + (viewport?.width || document.documentElement.clientWidth) - 16
   const bottomEdge = topEdge + (viewport?.height || window.innerHeight) - 16
   if (rect.bottom < topEdge || rect.top > bottomEdge || rect.right < leftEdge || rect.left > rightEdge) { close(); return }
-  const width = Math.min(Math.max(rect.width, 180), rightEdge - leftEdge)
+  let preferred=180
+  if(props.wide){const context=document.createElement('canvas').getContext('2d');if(context){context.font=getComputedStyle(trigger.value).font;preferred=Math.min(560,Math.max(320,...props.options.map(o=>context.measureText(o.label).width+60)))}}
+  const width = Math.min(Math.max(rect.width, preferred), rightEdge - leftEdge)
   element.style.width = `${width}px`
   const below = bottomEdge - rect.bottom - 6, above = rect.top - topEdge - 6
   const aboveTrigger = below < Math.min(288, element.scrollHeight + 2) && above > below
@@ -153,19 +155,19 @@ defineExpose({ focus: () => trigger.value?.focus() })
       :name="name" :disabled="unavailable" aria-haspopup="listbox" :aria-expanded="opened"
       :aria-controls="opened ? listId : undefined" :aria-activedescendant="opened && active >= 0 ? optionId(active) : undefined"
       :aria-required="required || undefined" @click="opened ? close() : open()" @keydown="keydown">
-      <span class="ui-select-value">{{label}}</span><ChevronDown :size="17" aria-hidden="true" :class="{'ui-select-arrow-open':opened}"/>
+      <span class="ui-select-value" :title="label"><slot name="value" :option="options[selected]">{{label}}</slot></span><ChevronDown :size="17" aria-hidden="true" :class="{'ui-select-arrow-open':opened}"/>
     </button>
     <input v-if="name" type="hidden" :name="name" :value="modelValue" :disabled="disabled"/>
     <Teleport :to="target">
       <Transition name="select-popup" @enter="enter" @before-leave="element => { element.setAttribute('aria-hidden','true'); (element as HTMLElement).inert=true }">
-        <ul v-if="opened" :id="listId" ref="panel" class="ui-select-popup" role="listbox" popover="manual"
+        <ul v-if="opened" :id="listId" ref="panel" class="ui-select-popup" :class="{'ui-select-popup-wide':wide}" role="listbox" popover="manual"
           :aria-label="String(attrs['aria-label'] || '选项')" :data-side="side"
           @pointerdown="$event.pointerType === 'mouse' && $event.preventDefault()">
           <li v-for="(option,index) in options" :id="optionId(index)" :key="`${typeof option.value}:${option.value}`"
             role="option" :aria-selected="index === selected" :aria-disabled="option.disabled || undefined"
             class="ui-select-option" :class="{'is-selected': index === selected, 'is-active':index === active}"
             @pointermove="!option.disabled && (active=index)" @click="choose(index)">
-            <span>{{option.label}}</span><Check v-if="index === selected" :size="17" aria-hidden="true"/>
+            <span :title="option.label"><slot name="option" :option="option">{{option.label}}</slot></span><Check v-if="index === selected" :size="17" aria-hidden="true"/>
           </li>
         </ul>
       </Transition>
@@ -183,6 +185,8 @@ defineExpose({ focus: () => trigger.value?.focus() })
 .ui-select-popup{position:fixed;inset:auto;margin:0;padding:4px;box-sizing:border-box;list-style:none;border:1px solid #e1e7ef;border-radius:8px;background:#fff;color:#344258;box-shadow:0 6px 22px #1c2c4814;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;z-index:1000;visibility:hidden;font-size:16px;line-height:1.5}
 .ui-select-popup::backdrop{background:transparent}.ui-select-option{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:44px;padding:9px 10px;border-radius:5px;cursor:pointer;overflow-wrap:anywhere}
 .ui-select-option>span{min-width:0}.ui-select-option>svg{flex-shrink:0;color:#2563eb}.ui-select-option.is-selected{background:#f1f5fc;color:#2455a4}
+.ui-select-popup-wide .ui-select-option>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.ui-select-popup-wide .ui-select-option>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;overflow:hidden;overflow-wrap:normal}}
 .ui-select-option.is-active{background:#edf3fc;outline:1px solid #dce7f7;outline-offset:-1px}.ui-select-option[aria-disabled="true"]{background:transparent;color:#8691a1;cursor:not-allowed}
 .select-popup-enter-active,.select-popup-leave-active{transition:opacity .14s ease,transform .14s ease}.select-popup-enter-from,.select-popup-leave-to{opacity:0;transform:translateY(4px)}
 .select-popup-enter-from[data-side="top"],.select-popup-leave-to[data-side="top"]{transform:translateY(-4px)}.select-popup-leave-active{pointer-events:none}
